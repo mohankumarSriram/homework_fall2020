@@ -79,10 +79,10 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             observation = obs
         else:
             observation = obs[None]
-
+        action = self(observation)
         # TODO return the action that the policy prescribes
-        raise NotImplementedError
-
+        # raise NotImplementedError
+        return ptu.to_numpy(action)
     # update/train this policy
     def update(self, observations, actions, **kwargs):
         raise NotImplementedError
@@ -93,7 +93,10 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     # return more flexible objects, such as a
     # `torch.distributions.Distribution` object. It's up to you!
     def forward(self, observation: torch.FloatTensor) -> Any:
-        raise NotImplementedError
+        h = observation
+        h = self.mean_net(h)
+        return h
+        #raise NotImplementedError
 
 
 #####################################################
