@@ -5,7 +5,7 @@ import time
 ############################################
 
 def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('rgb_array')):
-
+    print("\ntrying to reset the environment")
     # initialize env for the beginning of a new rollout
     ob = env.reset() # HINT: should be the output of resetting the env
 
@@ -15,22 +15,25 @@ def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('
     while True:
 
         # render image of the simulated env
+
         if render:
             if 'rgb_array' in render_mode:
                 if hasattr(env, 'sim'):
-                    image_obs.append(env.sim.render(camera_name='track', height=500, width=500)[::-1])
+                    print(f"\n sim render the environment: {render}")
+                    # image_obs.append(env.sim.render(camera_name='track', height=500, width=500)[::-1])
+                    image_obs.append(env.render(mode=render_mode))
                 else:
+                    print(f"\n no sim render the environment: {render}")
                     image_obs.append(env.render(mode=render_mode))
             if 'human' in render_mode:
+                print(f"\n human render the environment: {render}")
                 env.render(mode=render_mode)
                 time.sleep(env.model.opt.timestep)
-
         # use the most recent ob to decide what to do
         obs.append(ob)
         ac = policy.get_action(ob) # HINT: query the policy's get_action function
         ac = ac[0]
         acs.append(ac)
-
         # take that action and record results
         ob, rew, done, _ = env.step(ac)
 
