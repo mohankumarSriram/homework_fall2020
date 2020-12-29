@@ -92,7 +92,12 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         else:
             observation = obs[None]
         observation = ptu.from_numpy(observation.astype(np.float32))
-        action = self(observation)
+        action = self(observation).sample([1])
+        action = torch.squeeze(action, 1)
+        # print(f"observation shape: {observation.shape}\n")
+        # print(f"action shape: {action.shape}, action: {action}\n")
+        # print(f"input shape: {self.ob_dim}\n")
+        # print(f"output shape: {self.ac_dim}\n")
         # TODO return the action that the policy prescribes
         # raise NotImplementedError
         return ptu.to_numpy(action)
@@ -111,8 +116,16 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         h = observation
         if self.discrete:
             h = self.logits_na(h)
+            h = torch.nn.functional.softmax(h, dim=1)
+            h = distributions.Categorical(h)
+            # print("I'm in discrete mode \n")
+            # print(f"logits na output: {h}, shape: {h.shape}\n")
+            # print(f"distributions h output: {h}\n")
         else:
             h = self.mean_net(h)
+            h = torch.nn.functional.softmax(h, dim=1)
+            h = distributions.Normal(h, scale=torch.exp(self.logstd))
+            # print("I'm in continuous mode \n")
             # h = self.logstd(h)
         return h
 
@@ -138,12 +151,19 @@ class MLPPolicyPG(MLPPolicy):
         # HINT2: you will want to use the `log_prob` method on the distribution returned
             # by the `forward` method
         # HINT3: don't forget that `optimizer.step()` MINIMIZES a loss
-
-        loss = TODO
+        self.optimizer.zero_grad()
+        
+        action_distribution = self(observations)
+        # sample = action_distribution.sample((1,))
+        loss = torch.sum((-1*action_distribution.log_prob(actions) * advantages))#/len(advantages)
 
         # TODO: optimize `loss` using `self.optimizer`
         # HINT: remember to `zero_grad` first
-        TODO
+
+        loss.backward()
+
+        # update the policy
+        self.optimizer.step()
 
         if self.nn_baseline:
             ## TODO: normalize the q_values to have a mean of zero and a standard deviation of one

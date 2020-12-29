@@ -153,7 +153,7 @@ class PGAgent(BaseAgent):
             # because the summation happens over [t, T] instead of [0, T]
         # HINT2: it is possible to write a vectorized solution, but a solution
             # using a for loop is also fine
-        list_of_discounted_cumsums = [0]*len(rewards)
+        # list_of_discounted_cumsums = [0]*len(rewards)
 
         for start_time_index  in range(len(rewards)):
             indices = np.arange(start_time_index, len(rewards))
