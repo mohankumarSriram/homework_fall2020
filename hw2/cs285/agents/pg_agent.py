@@ -3,7 +3,7 @@ import numpy as np
 from .base_agent import BaseAgent
 from cs285.policies.MLP_policy import MLPPolicyPG
 from cs285.infrastructure.replay_buffer import ReplayBuffer
-
+from cs285.infrastructure.utils import normalize
 
 class PGAgent(BaseAgent):
     def __init__(self, env, agent_params):
@@ -131,12 +131,13 @@ class PGAgent(BaseAgent):
         # TODO: create list_of_discounted_returns
         # Hint: note that all entries of this output are equivalent
             # because each sum is from 0 to T (and doesnt involve t)
-        total_discounted_return = 0
-
-        for tbar in range(len(rewards)):
-            total_discounted_return += ((self.gamma)**tbar)*rewards[tbar]
-
-        list_of_discounted_returns = [total_discounted_return]*len(rewards)
+        indices = np.arange(len(rewards))
+        
+        discounts = np.power(self.gamma, indices)
+        discounted_rewards = discounts * rewards
+        
+        sum_of_discounted_rewards = np.sum(discounted_rewards)
+        list_of_discounted_returns = [sum_of_discounted_rewards] * len(rewards)         
         
         return list_of_discounted_returns
 
@@ -146,7 +147,7 @@ class PGAgent(BaseAgent):
             -takes a list of rewards {r_0, r_1, ..., r_t', ... r_T},
             -and returns a list where the entry in each index t' is sum_{t'=t}^T gamma^(t'-t) * r_{t'}
         """
-
+        all_discounted_cumsums = []
         # TODO: create `list_of_discounted_returns`
         # HINT1: note that each entry of the output should now be unique,
             # because the summation happens over [t, T] instead of [0, T]
@@ -154,9 +155,13 @@ class PGAgent(BaseAgent):
             # using a for loop is also fine
         list_of_discounted_cumsums = [0]*len(rewards)
 
-        for tbar in range(len(rewards)):
-            for _ in range(i, len(rewards)):
-                list_of_discounted_cumsums += ((self.gamma)**tbar)*rewards[tbar]
+        for start_time_index  in range(len(rewards)):
+            indices = np.arange(start_time_index, len(rewards))
+            discounts = np.power(self.gamma, indices - start_time_index)
+            discounted_rtg =  discounts * rewards[indices]
+            sum_discounted_rtg = np.sum(discounted_rtg)
+            all_discounted_cumsums.append(sum_discounted_rtg)
 
+        list_of_discounted_cumsums = np.array(all_discounted_cumsums)
         return list_of_discounted_cumsums
 
