@@ -12,6 +12,8 @@ from cs285.infrastructure import pytorch_util as ptu
 
 from cs285.infrastructure import utils
 from cs285.infrastructure.logger import Logger
+import robosuite as suite
+from robosuite.wrappers import GymWrapper
 
 # how many rollouts to save as videos to tensorboard
 MAX_NVIDEO = 2
@@ -44,7 +46,18 @@ class RL_Trainer(object):
         #############
 
         # Make the gym environment
-        self.env = gym.make(self.params['env_name'])
+        # self.env = gym.make(self.params['env_name'])
+        self.env = GymWrapper(
+        suite.make(
+            "Lift",
+            robots="Sawyer",                # use Sawyer robot
+            use_camera_obs=False,           # do not use pixel observations
+            has_offscreen_renderer=False,   # not needed since not using pixel obs
+            has_renderer=False,              # make sure we can render to the screen
+            reward_shaping=True,            # use dense rewards
+            control_freq=20,                # control should happen fast enough so that simulation looks smooth
+        )
+        )
         self.env.seed(seed)
 
         # import plotting (locally if 'obstacles' env)
@@ -76,8 +89,8 @@ class RL_Trainer(object):
             self.fps = 1/self.env.model.opt.timestep
         elif 'env_wrappers' in self.params:
             self.fps = 30 # This is not actually used when using the Monitor wrapper
-        elif 'video.frames_per_second' in self.env.env.metadata.keys():
-            self.fps = self.env.env.metadata['video.frames_per_second']
+        #elif 'video.frames_per_second' in self.env.env.metadata.keys():
+        #    self.fps = self.env.env.metadata['video.frames_per_second']
         else:
             self.fps = 10
 

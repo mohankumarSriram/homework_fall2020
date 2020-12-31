@@ -123,8 +123,8 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             # print(f"distributions h output: {h}\n")
         else:
             h = self.mean_net(h)
-            h = torch.nn.functional.softmax(h, dim=1)
-            h = distributions.Normal(h, scale=torch.exp(self.logstd))
+            # h = torch.nn.functional.softmax(h, dim=1)
+            h = distributions.Normal(h, scale=self.logstd.exp())
             # print("I'm in continuous mode \n")
             # h = self.logstd(h)
         return h
@@ -140,6 +140,10 @@ class MLPPolicyPG(MLPPolicy):
         self.baseline_loss = nn.MSELoss()
 
     def update(self, observations, actions, advantages, q_values=None):
+        print(f"observations count: {len(observations)}")
+        print(f"actions count: {len(actions)}")
+        print(f"advantages count: {len(advantages)}")
+        
         observations = ptu.from_numpy(observations)
         actions = ptu.from_numpy(actions)
         advantages = ptu.from_numpy(advantages)
@@ -155,6 +159,7 @@ class MLPPolicyPG(MLPPolicy):
         
         action_distribution = self(observations)
         # sample = action_distribution.sample((1,))
+        print(f"action distrubution log prob shape: {action_distribution.log_prob(actions).shape}")
         loss = torch.sum((-1*action_distribution.log_prob(actions) * advantages))#/len(advantages)
 
         # TODO: optimize `loss` using `self.optimizer`
