@@ -46,18 +46,18 @@ class RL_Trainer(object):
         #############
 
         # Make the gym environment
-        # self.env = gym.make(self.params['env_name'])
-        self.env = GymWrapper(
-        suite.make(
-            "Lift",
-            robots="Sawyer",                # use Sawyer robot
-            use_camera_obs=False,           # do not use pixel observations
-            has_offscreen_renderer=False,   # not needed since not using pixel obs
-            has_renderer=False,              # make sure we can render to the screen
-            reward_shaping=True,            # use dense rewards
-            control_freq=20,                # control should happen fast enough so that simulation looks smooth
-        )
-        )
+        self.env = gym.make(self.params['env_name'])
+        # self.env = GymWrapper(
+        # suite.make(
+        #     "Lift",
+        #     robots="Sawyer",                # use Sawyer robot
+        #     use_camera_obs=False,           # do not use pixel observations
+        #     has_offscreen_renderer=False,   # not needed since not using pixel obs
+        #     has_renderer=False,              # make sure we can render to the screen
+        #     reward_shaping=True,            # use dense rewards
+        #     control_freq=20,                # control should happen fast enough so that simulation looks smooth
+        # )
+        # )
         self.env.seed(seed)
 
         # import plotting (locally if 'obstacles' env)

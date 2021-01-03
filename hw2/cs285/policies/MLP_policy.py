@@ -44,6 +44,7 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
                                            size=self.size)
             self.logits_na.to(ptu.device)
             self.mean_net = None
+            # self.covariance = None
             self.logstd = None
             self.optimizer = optim.Adam(self.logits_na.parameters(),
                                         self.learning_rate)
@@ -52,6 +53,9 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             self.mean_net = ptu.build_mlp(input_size=self.ob_dim,
                                       output_size=self.ac_dim,
                                       n_layers=self.n_layers, size=self.size)
+            # self.covariance = nn.Parameter(
+            #     torch.eye(self.ac_dim, dtype=torch.float32, device=ptu.device)
+            # )
             self.logstd = nn.Parameter(
                 torch.zeros(self.ac_dim, dtype=torch.float32, device=ptu.device)
             )
@@ -92,8 +96,10 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         else:
             observation = obs[None]
         observation = ptu.from_numpy(observation.astype(np.float32))
-        action = self(observation).sample([1])
-        action = torch.squeeze(action, 1)
+        action = self(observation).sample()
+
+        if self.discrete:
+            action = torch.squeeze(action, 1)
         # print(f"observation shape: {observation.shape}\n")
         # print(f"action shape: {action.shape}, action: {action}\n")
         # print(f"input shape: {self.ob_dim}\n")
@@ -123,8 +129,9 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             # print(f"distributions h output: {h}\n")
         else:
             h = self.mean_net(h)
+            h = distributions.Normal(h, scale=torch.exp(self.logstd))
             # h = torch.nn.functional.softmax(h, dim=1)
-            h = distributions.Normal(h, scale=self.logstd.exp())
+            # h = distributions.MultivariateNormal(h, self.covariance)
             # print("I'm in continuous mode \n")
             # h = self.logstd(h)
         return h
@@ -140,9 +147,9 @@ class MLPPolicyPG(MLPPolicy):
         self.baseline_loss = nn.MSELoss()
 
     def update(self, observations, actions, advantages, q_values=None):
-        print(f"observations count: {len(observations)}")
-        print(f"actions count: {len(actions)}")
-        print(f"advantages count: {len(advantages)}")
+        # print(f"observations count: {len(observations)}")
+        # print(f"actions count: {len(actions)}")
+        # print(f"advantages count: {len(advantages)}")
         
         observations = ptu.from_numpy(observations)
         actions = ptu.from_numpy(actions)
@@ -159,8 +166,11 @@ class MLPPolicyPG(MLPPolicy):
         
         action_distribution = self(observations)
         # sample = action_distribution.sample((1,))
-        print(f"action distrubution log prob shape: {action_distribution.log_prob(actions).shape}")
-        loss = torch.sum((-1*action_distribution.log_prob(actions) * advantages))#/len(advantages)
+        # print(f"action distrubution log prob shape: {action_distribution.log_prob(actions).shape}")
+        if self.discrete:
+            loss = torch.sum((-1*action_distribution.log_prob(actions) * advantages))#/len(advantages)
+        else:
+            loss = torch.sum((-1*(action_distribution.log_prob(actions).sum(axis=-1)) * advantages))#/len(advantages)
 
         # TODO: optimize `loss` using `self.optimizer`
         # HINT: remember to `zero_grad` first
